@@ -1,15 +1,18 @@
-import { useState } from "react";
-import { Save, Bell, Shield, Store, Users } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Save, Bell, Shield, Store } from "lucide-react";
 import { toast } from "sonner";
+import { useDatabase } from "../utils/db";
 
 export function Settings() {
+  const { settings, updateSettings, loading } = useDatabase();
+
   const [bakery, setBakery] = useState({
-    name: "Golden Crust Bakery",
-    address: "242 Flour Street, Portland, OR 97201",
-    phone: "+1 555-8200",
-    email: "hello@goldencrust.com",
-    currency: "USD",
-    timezone: "America/Los_Angeles",
+    name: "BakeFlow Bakery",
+    address: "123 Baker Street, Mumbai",
+    phone: "+91-98765-00001",
+    email: "contact@bakeflow.in",
+    currency: "INR",
+    timezone: "Asia/Kolkata",
   });
 
   const [notifications, setNotifications] = useState({
@@ -23,10 +26,17 @@ export function Settings() {
   const [security, setSecurity] = useState({
     twoFactor: false,
     sessionTimeout: "60",
-    requirePin: true,
+    requirePin: false,
   });
 
-  const activeTab = useState("bakery")[0];
+  useEffect(() => {
+    if (settings) {
+      if (settings.bakery) setBakery(settings.bakery);
+      if (settings.notifications) setNotifications(settings.notifications);
+      if (settings.security) setSecurity(settings.security);
+    }
+  }, [settings]);
+
   const [tab, setTab] = useState("bakery");
 
   const tabs = [
@@ -35,8 +45,13 @@ export function Settings() {
     { id: "security", label: "Security", icon: Shield },
   ];
 
-  const handleSave = () => {
-    toast.success("Settings saved successfully");
+  const handleSave = async () => {
+    try {
+      await updateSettings({ bakery, notifications, security });
+      toast.success("Settings saved successfully");
+    } catch (err) {
+      toast.error("Failed to save settings");
+    }
   };
 
   return (
@@ -99,6 +114,7 @@ export function Settings() {
                   <label className="block mb-1.5 text-sm" style={{ color: "#2C1810", fontWeight: 500 }}>Currency</label>
                   <select value={bakery.currency} onChange={e => setBakery(b => ({ ...b, currency: e.target.value }))}
                     className="w-full px-3 py-2.5 rounded-xl border border-border outline-none text-sm" style={{ background: "#FFF9F0", color: "#2C1810" }}>
+                    <option value="INR">INR (₹)</option>
                     <option value="USD">USD ($)</option>
                     <option value="EUR">EUR (€)</option>
                     <option value="GBP">GBP (£)</option>
@@ -110,6 +126,7 @@ export function Settings() {
                 <label className="block mb-1.5 text-sm" style={{ color: "#2C1810", fontWeight: 500 }}>Timezone</label>
                 <select value={bakery.timezone} onChange={e => setBakery(b => ({ ...b, timezone: e.target.value }))}
                   className="w-full px-3 py-2.5 rounded-xl border border-border outline-none text-sm" style={{ background: "#FFF9F0", color: "#2C1810" }}>
+                  <option value="Asia/Kolkata">Kolkata (India)</option>
                   <option value="America/Los_Angeles">Pacific Time (US & Canada)</option>
                   <option value="America/New_York">Eastern Time (US & Canada)</option>
                   <option value="Europe/London">London</option>

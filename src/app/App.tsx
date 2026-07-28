@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toaster } from "sonner";
 import { DatabaseProvider, useDatabase } from "./utils/db";
+import { auth, isFirebaseConfigured, db } from "./utils/firebase";
+import { signOut, onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 // Auth
 import { LoginPage, type AuthUser } from "./components/LoginPage";
@@ -130,8 +133,53 @@ function WorkerApp({ user, onLogout }: { user: AuthUser; onLogout: () => void })
 export default function App() {
   {/* MARKER-MAKE-KIT-INVOKED */}
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [loadingAuth, setLoadingAuth] = useState(isFirebaseConfigured);
 
-  const handleLogout = () => setUser(null);
+  useEffect(() => {
+    if (isFirebaseConfigured && auth) {
+      const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+        try {
+          if (firebaseUser) {
+            const docRef = doc(db, "users", firebaseUser.uid);
+            const userDoc = await getDoc(docRef);
+            if (userDoc.exists()) {
+              setUser({ ...userDoc.data(), id: firebaseUser.uid } as AuthUser);
+            } else {
+              setUser(null);
+            }
+          } else {
+            setUser(null);
+          }
+        } catch (err) {
+          console.error("Auth state change error:", err);
+        } finally {
+          setLoadingAuth(false);
+        }
+      });
+      return unsub;
+    } else {
+      setLoadingAuth(false);
+    }
+  }, []);
+
+  const handleLogout = async () => {
+    if (isFirebaseConfigured && auth) {
+      try {
+        await signOut(auth);
+      } catch (err) {
+        console.error("Logout error:", err);
+      }
+    }
+    setUser(null);
+  };
+
+  if (loadingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#FFF9F0" }}>
+        <div className="w-10 h-10 rounded-full border-4 border-[#6D1F2F]/20 border-t-[#6D1F2F] animate-spin" />
+      </div>
+    );
+  }
 
   if (!user) return (
     <DatabaseProvider>

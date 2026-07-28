@@ -2,6 +2,9 @@ import { useState } from "react";
 import { Eye, EyeOff, Croissant, ChefHat, ShieldCheck, ArrowRight, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useDatabase } from "../utils/db";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth, isFirebaseConfigured, db } from "../utils/firebase";
 
 export type Role = "admin" | "worker";
 
@@ -59,24 +62,99 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoadingLogin(true);
 
-    setTimeout(() => {
-      const user = USERS.find(
-        u => u.email.trim().toLowerCase() === email.trim().toLowerCase() && u.password === password && u.role === selectedRole
-      );
-      if (user) {
-        const { password: _, ...safe } = user;
-        toast.success(`Welcome back, ${safe.name}! 👋`);
-        onLogin(safe);
-      } else {
+    const emailClean = email.trim().toLowerCase();
+
+    if (isFirebaseConfigured && auth) {
+      try {
+        let userCredential;
+        try {
+          userCredential = await signInWithEmailAndPassword(auth, emailClean, password);
+        } catch (authErr: any) {
+          const defaultWorker = USERS.find(u => u.email === emailClean && u.password === password && u.role === selectedRole);
+          
+          if (defaultWorker && (authErr.code === "auth/user-not-found" || authErr.code === "auth/invalid-credential" || authErr.code === "auth/invalid-email")) {
+            userCredential = await createUserWithEmailAndPassword(auth, emailClean, password);
+            
+            const userProfile = {
+              uid: userCredential.user.uid,
+              name: defaultWorker.name,
+              email: defaultWorker.email,
+              role: defaultWorker.role,
+              avatar: defaultWorker.avatar,
+              position: defaultWorker.position,
+              shift: defaultWorker.shift === "All" ? null : defaultWorker.shift,
+              phone: "+1 555-0" + Math.floor(Math.random() * 9000 + 1000),
+              status: "Active",
+              createdAt: serverTimestamp(),
+              lastLoginAt: serverTimestamp(),
+              lastActivity: serverTimestamp()
+            };
+            await setDoc(doc(db, "users", userCredential.user.uid), userProfile);
+          } else {
+            throw authErr;
+          }
+        }
+
+        const uid = userCredential.user.uid;
+        const userDocRef = doc(db, "users", uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists()) {
+          await setDoc(userDocRef, { lastLoginAt: serverTimestamp() }, { merge: true });
+          const profile = { ...userDoc.data(), id: uid } as AuthUser;
+          toast.success(`Welcome back, ${profile.name}! 👋`);
+          onLogin(profile);
+        } else {
+          const profile: AuthUser = {
+            id: uid,
+            name: userCredential.user.displayName || emailClean.split("@")[0],
+            email: emailClean,
+            role: selectedRole || "worker",
+            avatar: (userCredential.user.displayName || emailClean).split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2),
+            position: selectedRole === "admin" ? "Administrator" : "Baker",
+            shift: selectedRole === "admin" ? undefined : "Morning"
+          };
+          await setDoc(userDocRef, {
+            uid,
+            name: profile.name,
+            email: profile.email,
+            role: profile.role,
+            avatar: profile.avatar,
+            position: profile.position,
+            shift: profile.shift || null,
+            status: "Active",
+            createdAt: serverTimestamp(),
+            lastLoginAt: serverTimestamp(),
+            lastActivity: serverTimestamp()
+          });
+          toast.success(`Welcome back, ${profile.name}! 👋`);
+          onLogin(profile);
+        }
+      } catch (err: any) {
+        console.error("Sign in failed:", err);
         setError("Invalid credentials. Check your email, password, and selected role.");
         setLoadingLogin(false);
       }
-    }, 900);
+    } else {
+      setTimeout(() => {
+        const user = USERS.find(
+          u => u.email.trim().toLowerCase() === emailClean && u.password === password && u.role === selectedRole
+        );
+        if (user) {
+          const { password: _, ...safe } = user;
+          toast.success(`Welcome back, ${safe.name}! 👋`);
+          onLogin(safe);
+        } else {
+          setError("Invalid credentials. Check your email, password, and selected role.");
+          setLoadingLogin(false);
+        }
+      }, 900);
+    }
   };
 
   return (

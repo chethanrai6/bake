@@ -62,7 +62,7 @@ export function Dashboard() {
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayProduction = productionHistory.filter(p => p.date === todayStr);
   const todayProdCost = todayProduction.reduce((sum, p) => sum + p.totalCost, 0);
-  const todayItemsProduced = todayProduction.reduce((sum, p) => sum + p.quantity, 0);
+  const todayItemsProduced = todayProduction.reduce((sum, p) => sum + p.qty, 0);
   
   const yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const yesterdayProdCost = productionHistory.filter(p => p.date === yesterdayStr).reduce((sum, p) => sum + p.totalCost, 0);
@@ -98,7 +98,7 @@ export function Dashboard() {
       const target = last6Months.find(m => m.monthIndex === mIdx && m.year === y);
       if (target) {
         target.cost += entry.totalCost;
-        target.items += entry.quantity;
+        target.items += entry.qty;
       }
     }
   });
@@ -116,7 +116,7 @@ export function Dashboard() {
   // 3. Product Share
   const productCostMap: Record<string, number> = {};
   productionHistory.forEach(entry => {
-    productCostMap[entry.product] = (productCostMap[entry.product] || 0) + entry.totalCost;
+    productCostMap[entry.productName] = (productCostMap[entry.productName] || 0) + entry.totalCost;
   });
   const totalCostAllProducts = Object.values(productCostMap).reduce((a, b) => a + b, 0);
   const colors = ["#6D1F2F", "#F4C95D", "#34C759", "#FFB020", "#E5484D", "#8A2BE2", "#5F9EA0"];

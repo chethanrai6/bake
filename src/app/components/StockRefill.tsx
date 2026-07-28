@@ -71,13 +71,14 @@ export function StockRefill({ user }: StockRefillProps) {
 
     try {
       await refillStock({
+        ingredientId: ing.id,
         ingredient: ingredientName,
         quantityAdded: form.quantityAdded,
         unit: ing.unit,
         purchaseCost: form.purchaseCost,
         supplier: supplierName,
+        supplierId: ing.supplierId || "direct",
         date: form.date,
-        addedBy: user?.name || "Ahmed Omar",
       });
       
       toast.success(`Restocked ${form.quantityAdded} ${ing.unit} of ${ingredientName}`);

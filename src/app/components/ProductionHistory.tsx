@@ -25,18 +25,18 @@ export function ProductionHistory() {
   // Get unique workers list from history + database workers
   const uniqueWorkers = ["All Workers", ...Array.from(new Set([
     ...dbWorkers.map(w => w.name),
-    ...productionHistory.map(h => h.addedBy)
-  ]))];
+    ...productionHistory.map(h => h.workerName || "")
+  ]))].filter(Boolean);
 
   const filtered = productionHistory.filter(r => {
-    const matchSearch = r.product.toLowerCase().includes(search.toLowerCase());
-    const matchWorker = workerFilter === "All Workers" || r.addedBy === workerFilter;
+    const matchSearch = (r.productName || "").toLowerCase().includes(search.toLowerCase());
+    const matchWorker = workerFilter === "All Workers" || r.workerName === workerFilter;
     const matchFrom   = !dateFrom || r.date >= dateFrom;
     const matchTo     = !dateTo   || r.date <= dateTo;
     return matchSearch && matchWorker && matchFrom && matchTo;
   });
 
-  const totals = filtered.reduce((acc, r) => ({ items: acc.items + r.quantity, cost: acc.cost + r.totalCost }), { items: 0, cost: 0 });
+  const totals = filtered.reduce((acc, r) => ({ items: acc.items + (r.qty || 0), cost: acc.cost + r.totalCost }), { items: 0, cost: 0 });
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -91,16 +91,13 @@ export function ProductionHistory() {
             </thead>
             <tbody>
               {filtered.map(row => {
-                const w = dbWorkers.find(worker => worker.name === row.addedBy);
-                const shift = w?.role.includes("Senior") || w?.role.includes("Decorator") || row.addedBy.includes("Maria") || row.addedBy.includes("Fatima")
-                  ? "Morning"
-                  : "Afternoon";
+                const shift = row.shift || "Morning";
 
                 return (
                   <tr key={row.id} className="border-b transition-colors hover:bg-muted/40" style={{ borderColor: "rgba(44,24,16,0.06)" }}>
                     <td className="px-4 py-3.5 text-sm" style={{ color: "#6B7280" }}>{row.date}</td>
-                    <td className="px-4 py-3.5"><span className="text-sm" style={{ color: "#2C1810", fontWeight: 500 }}>{row.product}</span></td>
-                    <td className="px-4 py-3.5 text-sm" style={{ color: "#2C1810" }}>{row.quantity} pcs</td>
+                    <td className="px-4 py-3.5"><span className="text-sm" style={{ color: "#2C1810", fontWeight: 500 }}>{row.productName}</span></td>
+                    <td className="px-4 py-3.5 text-sm" style={{ color: "#2C1810" }}>{row.qty} pcs</td>
                     <td className="px-4 py-3.5 text-sm" style={{ color: "#2C1810", fontWeight: 500 }}>
                       ₹{row.totalCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
                     </td>
@@ -110,9 +107,9 @@ export function ProductionHistory() {
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs" style={{ background: "#6D1F2F", fontWeight: 600 }}>
-                          {row.addedBy ? row.addedBy.split(" ").map(n => n[0]).join("") : "W"}
+                          {row.workerName ? row.workerName.split(" ").map(n => n[0]).join("") : "W"}
                         </div>
-                        <span className="text-sm" style={{ color: "#2C1810" }}>{row.addedBy}</span>
+                        <span className="text-sm" style={{ color: "#2C1810" }}>{row.workerName}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5">

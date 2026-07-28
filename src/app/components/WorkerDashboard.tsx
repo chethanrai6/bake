@@ -91,25 +91,17 @@ function StatCard({
 /* ─────────────────────────────────────────────
    Today's Task List
    ───────────────────────────────────────────── */
-interface Task { id: number; label: string; target: number; done: number; emoji: string; priority: "high" | "medium" | "low" }
-
-const initialTasks: Task[] = [
-  { id: 1, label: "Butter Croissants", target: 60, done: 48, emoji: "🥐", priority: "high" },
-  { id: 2, label: "Sourdough Loaves", target: 30, done: 30, emoji: "🍞", priority: "high" },
-  { id: 3, label: "Blueberry Muffins", target: 80, done: 52, emoji: "🧁", priority: "medium" },
-  { id: 4, label: "Cinnamon Rolls", target: 48, done: 0, emoji: "🌀", priority: "low" },
-];
-
 function TaskChecklist() {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const { tasks, updateTask } = useDatabase();
 
-  const toggle = (id: number) => {
-    setTasks(prev => prev.map(t => {
-      if (t.id !== id) return t;
-      const newDone = t.done >= t.target ? 0 : t.target;
-      if (newDone === t.target) toast.success(`${t.label} marked complete! 🎉`);
-      return { ...t, done: newDone };
-    }));
+  const toggle = async (id: string, currentDone: number, target: number, label: string) => {
+    const newDone = currentDone >= target ? 0 : target;
+    try {
+      await updateTask(id, newDone);
+      if (newDone === target) toast.success(`${label} marked complete! 🎉`);
+    } catch (err) {
+      toast.error("Failed to update task");
+    }
   };
 
   const priorityColor: Record<string, string> = {
@@ -138,7 +130,7 @@ function TaskChecklist() {
               style={{ background: complete ? "rgba(52,199,89,0.05)" : "#FFF9F0" }}
             >
               <button
-                onClick={() => toggle(task.id)}
+                onClick={() => toggle(task.id, task.done, task.target, task.label)}
                 className="w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all"
                 style={{
                   borderColor: complete ? "#34C759" : priorityColor[task.priority],
@@ -187,6 +179,11 @@ function TaskChecklist() {
             </div>
           );
         })}
+        {tasks.length === 0 && (
+          <div className="py-6 text-center text-xs" style={{ color: "#6B7280" }}>
+            No tasks assigned for today.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -198,7 +195,7 @@ function TaskChecklist() {
 interface IngRow { id: string; ingredientId: string; qty: number }
 
 function QuickLogger({ workerName }: { workerName: string }) {
-  const { ingredients, recordProduction } = useDatabase();
+  const { ingredients, products, recordProduction } = useDatabase();
 
   const [productName, setProductName] = useState("");
   const [itemsProduced, setItemsProduced] = useState<number | "">("");
@@ -249,13 +246,16 @@ function QuickLogger({ workerName }: { workerName: string }) {
         };
       });
 
+      const matchedProd = products.find(p => p.name.toLowerCase() === productName.trim().toLowerCase());
+      const productId = matchedProd ? matchedProd.id : "other";
+
       await recordProduction({
-        product: productName,
-        quantity: n,
+        productId,
+        productName: productName.trim(),
+        qty: n,
         totalCost,
         costPerItem,
         date: new Date().toISOString().slice(0, 10),
-        addedBy: workerName
       }, deductions);
 
       toast.success(`✅ Logged ${n}× ${productName} — cost ₹${totalCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`);
@@ -495,19 +495,20 @@ function RecentLogs({ workerName }: { workerName: string }) {
 
   const myLogs = useMemo(() => {
     return productionHistory
-      .filter(p => p.addedBy === workerName)
+      .filter(p => p.workerName === workerName)
       .slice(0, 4)
       .map(p => {
         let emoji = "🥐";
-        if (p.product.toLowerCase().includes("bread") || p.product.toLowerCase().includes("loaf") || p.product.toLowerCase().includes("sourdough")) emoji = "🍞";
-        else if (p.product.toLowerCase().includes("muffin") || p.product.toLowerCase().includes("cupcake")) emoji = "🧁";
-        else if (p.product.toLowerCase().includes("bagel")) emoji = "🥯";
-        else if (p.product.toLowerCase().includes("brownie") || p.product.toLowerCase().includes("cake")) emoji = "🍰";
+        const nameLower = (p.productName || "").toLowerCase();
+        if (nameLower.includes("bread") || nameLower.includes("loaf") || nameLower.includes("sourdough")) emoji = "🍞";
+        else if (nameLower.includes("muffin") || nameLower.includes("cupcake")) emoji = "🧁";
+        else if (nameLower.includes("bagel")) emoji = "🥯";
+        else if (nameLower.includes("brownie") || nameLower.includes("cake")) emoji = "🍰";
 
         return {
           time: p.date,
-          product: p.product,
-          qty: p.quantity,
+          product: p.productName,
+          qty: p.qty,
           cost: p.totalCost,
           emoji
         };
@@ -558,8 +559,8 @@ function PerformanceWidget({ workerName }: { workerName: string }) {
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const todayItems = productionHistory
-    .filter(p => p.date === todayStr && p.addedBy === workerName)
-    .reduce((sum, p) => sum + p.quantity, 0);
+    .filter(p => p.date === todayStr && p.workerName === workerName)
+    .reduce((sum, p) => sum + (p.qty || 0), 0);
 
   const metrics = [
     { label: "Items Today", value: todayItems || 48, goal: 100, color: "#6D1F2F" },
@@ -675,8 +676,8 @@ export function WorkerDashboard({ user }: { user?: AuthUser }) {
 
   const lowStock = ingredients.filter(i => i.quantity <= i.minStock);
   const todayStr = new Date().toISOString().slice(0, 10);
-  const todayBatches = productionHistory.filter(p => p.date === todayStr && p.addedBy === worker.name);
-  const todayItemsBaked = todayBatches.reduce((sum, p) => sum + p.quantity, 0);
+  const todayBatches = productionHistory.filter(p => p.date === todayStr && p.workerName === worker.name);
+  const todayItemsBaked = todayBatches.reduce((sum, p) => sum + (p.qty || 0), 0);
 
   if (loading) {
     return (

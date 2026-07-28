@@ -14,6 +14,7 @@ interface ProductionProps {
 export function Production({ user }: ProductionProps) {
   const {
     ingredients,
+    products,
     recordProduction,
     loading
   } = useDatabase();
@@ -76,13 +77,16 @@ export function Production({ user }: ProductionProps) {
         };
       });
 
+      const matchedProd = products.find(p => p.name.toLowerCase() === productName.trim().toLowerCase());
+      const productId = matchedProd ? matchedProd.id : "other";
+
       await recordProduction({
-        product: productName,
-        quantity: itemsProduced,
+        productId,
+        productName: productName.trim(),
+        qty: itemsProduced,
         totalCost,
         costPerItem,
         date: new Date().toISOString().slice(0, 10),
-        addedBy: user?.name || "Maria Santos"
       }, deductions);
 
       toast.success(`Production recorded: ${itemsProduced}× ${productName}`);

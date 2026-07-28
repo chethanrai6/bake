@@ -54,7 +54,7 @@ export function WasteTracking({ user }: WasteTrackingProps) {
     unit: w.unit,
     reason: w.reason,
     date: w.date,
-    cost: w.purchaseCost
+    cost: w.cost || 0
   }));
 
   const totalCost = entries.reduce((s, e) => s + e.cost, 0);
@@ -76,17 +76,14 @@ export function WasteTracking({ user }: WasteTrackingProps) {
       return;
     }
 
-    const cost = ing.costPerUnit * form.quantity;
-
     try {
       await recordWaste({
+        ingredientId: ing.id,
         ingredient: activeIngredientName,
         quantity: form.quantity,
         unit: ing.unit,
         reason: form.reason,
-        purchaseCost: cost,
         date: form.date,
-        addedBy: user?.name || "Maria Santos"
       });
 
       toast.success("Waste entry recorded");
