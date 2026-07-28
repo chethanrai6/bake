@@ -57,6 +57,11 @@ export interface Supplier {
   status: "Active" | "Inactive";
 }
 
+export interface ProductRecipeItem {
+  ingredientName: string;
+  quantityPerUnit: number;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -66,6 +71,7 @@ export interface Product {
   emoji: string;
   category: string;
   isActive: boolean;
+  recipe?: ProductRecipeItem[];
 }
 
 export interface ProductionEntry {
@@ -218,15 +224,140 @@ const defaultWorkers: Worker[] = [
 ];
 
 const defaultProducts: Product[] = [
-  { id: "prod_1", name: "Butter Croissant", costPerUnit: 107.9, sellingPrice: 332, margin: 67.5, emoji: "🥐", category: "Pastry", isActive: true },
-  { id: "prod_2", name: "Sourdough Loaf", costPerUnit: 166, sellingPrice: 539.5, margin: 69.2, emoji: "🍞", category: "Bread", isActive: true },
-  { id: "prod_3", name: "Blueberry Muffin", costPerUnit: 43.16, sellingPrice: 207.5, margin: 79.2, emoji: "🧁", category: "Muffin", isActive: true },
-  { id: "prod_4", name: "Bagel Assortment", costPerUnit: 45.65, sellingPrice: 166, margin: 72.5, emoji: "🥯", category: "Bread", isActive: true },
-  { id: "prod_5", name: "Chocolate Brownie", costPerUnit: 74.7, sellingPrice: 249, margin: 70.0, emoji: "🍫", category: "Cake", isActive: true },
-  { id: "prod_6", name: "Almond Danish", costPerUnit: 116.2, sellingPrice: 373.5, margin: 68.9, emoji: "🥐", category: "Pastry", isActive: true },
-  { id: "prod_7", name: "Banana Bread", costPerUnit: 103.75, sellingPrice: 332, margin: 68.8, emoji: "🍌", category: "Bread", isActive: true },
-  { id: "prod_8", name: "Cinnamon Roll", costPerUnit: 62.25, sellingPrice: 207.5, margin: 70.0, emoji: "🌀", category: "Pastry", isActive: true },
-  { id: "prod_9", name: "Lemon Tart", costPerUnit: 124.5, sellingPrice: 373.5, margin: 66.7, emoji: "🍋", category: "Pastry", isActive: true }
+  {
+    id: "prod_1",
+    name: "Butter Croissant",
+    costPerUnit: 107.9,
+    sellingPrice: 332,
+    margin: 67.5,
+    emoji: "🥐",
+    category: "Pastry",
+    isActive: true,
+    recipe: [
+      { ingredientName: "Maida", quantityPerUnit: 0.08 },
+      { ingredientName: "Butter", quantityPerUnit: 0.04 },
+      { ingredientName: "Sugar", quantityPerUnit: 0.015 }
+    ]
+  },
+  {
+    id: "prod_2",
+    name: "Sourdough Loaf",
+    costPerUnit: 166,
+    sellingPrice: 539.5,
+    margin: 69.2,
+    emoji: "🍞",
+    category: "Bread",
+    isActive: true,
+    recipe: [
+      { ingredientName: "Maida", quantityPerUnit: 0.35 },
+      { ingredientName: "Yeast", quantityPerUnit: 0.005 }
+    ]
+  },
+  {
+    id: "prod_3",
+    name: "Blueberry Muffin",
+    costPerUnit: 43.16,
+    sellingPrice: 207.5,
+    margin: 79.2,
+    emoji: "🧁",
+    category: "Muffin",
+    isActive: true,
+    recipe: [
+      { ingredientName: "Maida", quantityPerUnit: 0.04 },
+      { ingredientName: "Sugar", quantityPerUnit: 0.02 },
+      { ingredientName: "Eggs", quantityPerUnit: 0.5 }
+    ]
+  },
+  {
+    id: "prod_4",
+    name: "Bagel Assortment",
+    costPerUnit: 45.65,
+    sellingPrice: 166,
+    margin: 72.5,
+    emoji: "🥯",
+    category: "Bread",
+    isActive: true,
+    recipe: [
+      { ingredientName: "Maida", quantityPerUnit: 0.06 },
+      { ingredientName: "Yeast", quantityPerUnit: 0.003 }
+    ]
+  },
+  {
+    id: "prod_5",
+    name: "Chocolate Brownie",
+    costPerUnit: 74.7,
+    sellingPrice: 249,
+    margin: 70.0,
+    emoji: "🍫",
+    category: "Cake",
+    isActive: true,
+    recipe: [
+      { ingredientName: "Maida", quantityPerUnit: 0.03 },
+      { ingredientName: "Butter", quantityPerUnit: 0.02 },
+      { ingredientName: "Sugar", quantityPerUnit: 0.03 }
+    ]
+  },
+  {
+    id: "prod_6",
+    name: "Almond Danish",
+    costPerUnit: 116.2,
+    sellingPrice: 373.5,
+    margin: 68.9,
+    emoji: "🥐",
+    category: "Pastry",
+    isActive: true,
+    recipe: [
+      { ingredientName: "Maida", quantityPerUnit: 0.07 },
+      { ingredientName: "Butter", quantityPerUnit: 0.03 },
+      { ingredientName: "Sugar", quantityPerUnit: 0.015 }
+    ]
+  },
+  {
+    id: "prod_7",
+    name: "Banana Bread",
+    costPerUnit: 103.75,
+    sellingPrice: 332,
+    margin: 68.8,
+    emoji: "🍌",
+    category: "Bread",
+    isActive: true,
+    recipe: [
+      { ingredientName: "Maida", quantityPerUnit: 0.15 },
+      { ingredientName: "Sugar", quantityPerUnit: 0.08 },
+      { ingredientName: "Eggs", quantityPerUnit: 1.0 }
+    ]
+  },
+  {
+    id: "prod_8",
+    name: "Cinnamon Roll",
+    costPerUnit: 62.25,
+    sellingPrice: 207.5,
+    margin: 70.0,
+    emoji: "🌀",
+    category: "Pastry",
+    isActive: true,
+    recipe: [
+      { ingredientName: "Maida", quantityPerUnit: 0.07 },
+      { ingredientName: "Butter", quantityPerUnit: 0.02 },
+      { ingredientName: "Sugar", quantityPerUnit: 0.025 }
+    ]
+  },
+  {
+    id: "prod_9",
+    name: "Lemon Tart",
+    costPerUnit: 124.5,
+    sellingPrice: 373.5,
+    margin: 66.7,
+    emoji: "🍋",
+    category: "Pastry",
+    isActive: true,
+    recipe: [
+      { ingredientName: "Maida", quantityPerUnit: 0.05 },
+      { ingredientName: "Butter", quantityPerUnit: 0.03 },
+      { ingredientName: "Sugar", quantityPerUnit: 0.03 },
+      { ingredientName: "Eggs", quantityPerUnit: 0.5 }
+    ]
+  }
 ];
 
 const defaultTasks = (todayStr: string): Task[] => [

@@ -196,12 +196,20 @@ interface IngRow { id: string; ingredientId: string; qty: number }
 function QuickLogger({ workerName }: { workerName: string }) {
   const { ingredients, products, recordProduction } = useDatabase();
 
-  const [productName, setProductName] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState("");
+  const [manualMode, setManualMode] = useState(false);
+  const [customProductName, setCustomProductName] = useState("");
   const [itemsProduced, setItemsProduced] = useState<number | "">("");
   const [rows, setRows] = useState<IngRow[]>([{ id: "r1", ingredientId: "", qty: 0 }]);
   const [submitted, setSubmitted] = useState(false);
 
   const activeIngredientList = ingredients;
+
+  // Find selected product
+  const selectedProduct = products.find(p => p.id === selectedProductId);
+
+  // Auto-set the product name based on selection
+  const activeProductName = manualMode ? customProductName : (selectedProduct ? selectedProduct.name : "");
 
   // Ensure rows have default ingredient ID
   const activeRows = rows.map(r => ({
@@ -214,54 +222,92 @@ function QuickLogger({ workerName }: { workerName: string }) {
   const updateRow = (id: string, field: "ingredientId" | "qty", val: any) =>
     setRows(p => p.map(r => r.id === id ? { ...r, [field]: val } : r));
 
-  const totalCost = activeRows.reduce((s, r) => {
-    const ing = activeIngredientList.find(i => i.id === r.ingredientId);
-    return s + (ing ? ing.costPerUnit * r.qty : 0);
-  }, 0);
+  // Calculations based on mode
+  let totalCost = 0;
+  let deductions: { ingredientName: string; quantity: number }[] = [];
+  const n = Number(itemsProduced) || 0;
 
-  const n = Number(itemsProduced);
+  if (manualMode) {
+    totalCost = activeRows.reduce((s, r) => {
+      const ing = activeIngredientList.find(i => i.id === r.ingredientId);
+      return s + (ing ? ing.costPerUnit * r.qty : 0);
+    }, 0);
+    deductions = activeRows.map(r => {
+      const ing = activeIngredientList.find(i => i.id === r.ingredientId)!;
+      return {
+        ingredientName: ing.name,
+        quantity: r.qty
+      };
+    });
+  } else if (selectedProduct && selectedProduct.recipe) {
+    selectedProduct.recipe.forEach(item => {
+      const ing = ingredients.find(i => i.name.toLowerCase() === item.ingredientName.toLowerCase());
+      if (ing) {
+        const itemCost = ing.costPerUnit * item.quantityPerUnit * n;
+        totalCost += itemCost;
+        deductions.push({
+          ingredientName: ing.name,
+          quantity: Number((item.quantityPerUnit * n).toFixed(4))
+        });
+      }
+    });
+  }
+
   const costPerItem = n > 0 ? totalCost / n : 0;
+
+  const handleProductSelect = (id: string) => {
+    setSelectedProductId(id);
+    if (id === "other") {
+      setManualMode(true);
+    } else {
+      setManualMode(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productName || n < 1) { toast.error("Fill in product name and quantity"); return; }
-    if (activeRows.some(r => r.qty <= 0)) { toast.error("Please enter a valid quantity for ingredients"); return; }
+    if (!activeProductName || n < 1) { toast.error("Fill in product and quantity"); return; }
 
-    // Check stock levels
-    for (const r of activeRows) {
-      const ing = activeIngredientList.find(i => i.id === r.ingredientId);
-      if (ing && r.qty > ing.quantity) {
-        toast.error(`Exceeds available stock for ${ing.name}`);
-        return;
+    if (manualMode) {
+      if (activeRows.some(r => r.qty <= 0)) { toast.error("Please enter a valid quantity for ingredients"); return; }
+      
+      // Check stock levels for manual bakes
+      for (const r of activeRows) {
+        const ing = activeIngredientList.find(i => i.id === r.ingredientId);
+        if (ing && r.qty > ing.quantity) {
+          toast.error(`Exceeds available stock for ${ing.name}`);
+          return;
+        }
+      }
+    } else if (selectedProduct && selectedProduct.recipe) {
+      // Check stock levels for recipe bakes
+      for (const item of selectedProduct.recipe) {
+        const ing = ingredients.find(i => i.name.toLowerCase() === item.ingredientName.toLowerCase());
+        const required = item.quantityPerUnit * n;
+        if (ing && required > ing.quantity) {
+          toast.error(`Insufficient stock: ${ing.name} has only ${ing.quantity} ${ing.unit} but recipe requires ${required.toFixed(2)} ${ing.unit}`);
+          return;
+        }
       }
     }
 
     try {
-      const deductions = activeRows.map(r => {
-        const ing = activeIngredientList.find(i => i.id === r.ingredientId)!;
-        return {
-          ingredientName: ing.name,
-          quantity: r.qty
-        };
-      });
-
-      const matchedProd = products.find(p => p.name.toLowerCase() === productName.trim().toLowerCase());
-      const productId = matchedProd ? matchedProd.id : "other";
-
       await recordProduction({
-        productId,
-        productName: productName.trim(),
+        productId: manualMode ? "other" : selectedProductId,
+        productName: activeProductName.trim(),
         qty: n,
         totalCost,
         costPerItem,
         date: new Date().toISOString().slice(0, 10),
       }, deductions);
 
-      toast.success(`✅ Logged ${n}× ${productName} — cost ₹${totalCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`);
+      toast.success(`✅ Logged ${n}× ${activeProductName} — cost ₹${totalCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`);
       setSubmitted(true);
       setTimeout(() => {
         setSubmitted(false);
-        setProductName("");
+        setSelectedProductId("");
+        setManualMode(false);
+        setCustomProductName("");
         setItemsProduced("");
         setRows([{ id: "r1", ingredientId: activeIngredientList[0]?.id || "", qty: 0 }]);
       }, 2000);
@@ -290,18 +336,27 @@ function QuickLogger({ workerName }: { workerName: string }) {
       </div>
 
       <form onSubmit={handleSubmit} className="p-5 space-y-4">
-        {/* Product + count */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Product Selection + Count */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block mb-1.5 text-xs" style={{ color: "#6B7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Product Name
+              Select Product
             </label>
-            <input
-              required value={productName} onChange={e => setProductName(e.target.value)}
-              placeholder="e.g. Butter Croissant"
+            <select
+              value={selectedProductId}
+              onChange={e => handleProductSelect(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl border border-border text-sm outline-none transition-all focus:border-primary"
               style={{ background: "#FFF9F0", color: "#2C1810" }}
-            />
+              required
+            >
+              <option value="">Choose a product...</option>
+              {products.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.emoji} {p.name}
+                </option>
+              ))}
+              <option value="other">✨ Custom Product (Manual Ingredients)</option>
+            </select>
           </div>
           <div>
             <label className="block mb-1.5 text-xs" style={{ color: "#6B7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>
@@ -317,58 +372,102 @@ function QuickLogger({ workerName }: { workerName: string }) {
           </div>
         </div>
 
-        {/* Ingredient rows */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs" style={{ color: "#6B7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Ingredients Used
+        {/* Custom Product Text Field (if other is selected) */}
+        {manualMode && (
+          <div className="transition-all">
+            <label className="block mb-1.5 text-xs" style={{ color: "#6B7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              Custom Product Name
             </label>
-            <button type="button" onClick={addRow}
-              className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-xl transition-colors hover:opacity-80"
-              style={{ background: "#FEF3D0", color: "#6D1F2F", fontWeight: 600 }}>
-              <Plus className="w-3 h-3" /> Add
-            </button>
+            <input
+              required value={customProductName} onChange={e => setCustomProductName(e.target.value)}
+              placeholder="e.g. Sourdough Loaf"
+              className="w-full px-3 py-2.5 rounded-xl border border-border text-sm outline-none transition-all focus:border-primary"
+              style={{ background: "#FFF9F0", color: "#2C1810" }}
+            />
           </div>
-          <div className="space-y-2">
-            {activeRows.map(row => {
-              const ing = activeIngredientList.find(i => i.id === row.ingredientId) || { name: "", unit: "kg", quantity: 0, costPerUnit: 0 };
-              const rowCost = ing.costPerUnit * row.qty;
-              const overStock = row.qty > ing.quantity;
-              return (
-                <div key={row.id} className="flex items-center gap-2">
-                  <select
-                    value={row.ingredientId}
-                    onChange={e => updateRow(row.id, "ingredientId", e.target.value)}
-                    className="flex-1 px-2.5 py-2 rounded-xl border border-border text-sm outline-none"
-                    style={{ background: "#FFF9F0", color: "#2C1810" }}
-                  >
-                    {activeIngredientList.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-                  </select>
-                  <div className="relative w-24">
-                    <input
-                      type="number" min={0} step={0.01} value={row.qty || ""}
-                      onChange={e => updateRow(row.id, "qty", parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                      className="w-full px-2.5 py-2 rounded-xl border text-sm outline-none text-right"
-                      style={{
-                        background: "#FFF9F0", color: "#2C1810",
-                        borderColor: overStock ? "#E5484D" : "rgba(44,24,16,0.1)",
-                      }}
-                    />
+        )}
+
+        {/* Recipe automatic display (if normal product selected) */}
+        {!manualMode && selectedProduct && selectedProduct.recipe && n > 0 && (
+          <div className="rounded-xl p-3.5 border border-dashed border-border" style={{ background: "#FFFBF7" }}>
+            <p className="text-xs font-semibold mb-2" style={{ color: "#6D1F2F" }}>
+              Recipe Deductions (Automatic)
+            </p>
+            <div className="space-y-1.5">
+              {selectedProduct.recipe.map((item, idx) => {
+                const req = item.quantityPerUnit * n;
+                const ing = ingredients.find(i => i.name.toLowerCase() === item.ingredientName.toLowerCase());
+                const inStock = ing ? ing.quantity : 0;
+                const unit = ing ? ing.unit : "units";
+                const isShort = ing && req > inStock;
+                
+                return (
+                  <div key={idx} className="flex justify-between items-center text-xs">
+                    <span style={{ color: "#2C1810", fontWeight: 500 }}>• {item.ingredientName}</span>
+                    <span style={{ color: isShort ? "#E5484D" : "#6B7280", fontWeight: isShort ? 600 : 400 }}>
+                      {req.toFixed(3)} {unit} {ing ? `(In stock: ${inStock} ${unit})` : "(Not in inventory)"}
+                    </span>
                   </div>
-                  <span className="text-xs w-8 shrink-0 text-center" style={{ color: "#6B7280" }}>{ing.unit}</span>
-                  <span className="text-xs w-14 shrink-0 text-right" style={{ color: "#6D1F2F", fontWeight: 600 }}>
-                    ₹{rowCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                  </span>
-                  <button type="button" onClick={() => removeRow(row.id)} disabled={rows.length === 1}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 disabled:opacity-30">
-                    <X className="w-3.5 h-3.5" style={{ color: "#E5484D" }} />
-                  </button>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Manual Ingredient rows (if custom is selected) */}
+        {manualMode && (
+          <div className="transition-all">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs" style={{ color: "#6B7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Ingredients Used
+              </label>
+              <button type="button" onClick={addRow}
+                className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-xl transition-colors hover:opacity-80"
+                style={{ background: "#FEF3D0", color: "#6D1F2F", fontWeight: 600 }}>
+                <Plus className="w-3 h-3" /> Add
+              </button>
+            </div>
+            <div className="space-y-2">
+              {activeRows.map(row => {
+                const ing = activeIngredientList.find(i => i.id === row.ingredientId) || { name: "", unit: "kg", quantity: 0, costPerUnit: 0 };
+                const rowCost = ing.costPerUnit * row.qty;
+                const overStock = row.qty > ing.quantity;
+                return (
+                  <div key={row.id} className="flex items-center gap-2">
+                    <select
+                      value={row.ingredientId}
+                      onChange={e => updateRow(row.id, "ingredientId", e.target.value)}
+                      className="flex-1 px-2.5 py-2 rounded-xl border border-border text-sm outline-none"
+                      style={{ background: "#FFF9F0", color: "#2C1810" }}
+                    >
+                      {activeIngredientList.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                    </select>
+                    <div className="relative w-24">
+                      <input
+                        type="number" min={0} step={0.01} value={row.qty || ""}
+                        onChange={e => updateRow(row.id, "qty", parseFloat(e.target.value) || 0)}
+                        placeholder="0"
+                        className="w-full px-2.5 py-2 rounded-xl border text-sm outline-none text-right"
+                        style={{
+                          background: "#FFF9F0", color: "#2C1810",
+                          borderColor: overStock ? "#E5484D" : "rgba(44,24,16,0.1)",
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs w-8 shrink-0 text-center" style={{ color: "#6B7280" }}>{ing.unit}</span>
+                    <span className="text-xs w-14 shrink-0 text-right" style={{ color: "#6D1F2F", fontWeight: 600 }}>
+                      ₹{rowCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                    </span>
+                    <button type="button" onClick={() => removeRow(row.id)} disabled={rows.length === 1}
+                      className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 disabled:opacity-30">
+                      <X className="w-3.5 h-3.5" style={{ color: "#E5484D" }} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Live cost strip */}
         <div className="grid grid-cols-3 gap-2 rounded-xl p-3" style={{ background: "#FFF9F0" }}>

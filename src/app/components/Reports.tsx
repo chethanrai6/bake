@@ -2,6 +2,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { Download, FileText, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { USD_TO_INR } from "../utils/currency";
+import { useDatabase } from "../utils/db";
 
 const R = USD_TO_INR;
 
@@ -49,9 +50,159 @@ const reportTypes = [
 
 const rupFmt = (v: number) => `₹${(v / 1000).toFixed(0)}k`;
 
+const downloadCSV = (filename: string, headers: string[], rows: string[][]) => {
+  const csvContent = [
+    headers.join(","),
+    ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
+  ].join("\n");
+  
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const printHTMLReport = (title: string, headers: string[], rows: string[][]) => {
+  const win = window.open("", "_blank");
+  if (!win) {
+    toast.error("Popup blocked! Please allow popups to generate PDF.");
+    return;
+  }
+  
+  const headersHTML = headers.map(h => `<th style="padding: 12px 10px; text-align: left; border-bottom: 2px solid #6D1F2F; color: #6D1F2F; font-size: 13px; font-weight: 600;">${h}</th>`).join("");
+  const rowsHTML = rows.map(r => `
+    <tr style="border-bottom: 1px solid #E5E7EB;">
+      ${r.map(val => `<td style="padding: 12px 10px; font-size: 13px; color: #2C1810;">${val}</td>`).join("")}
+    </tr>
+  `).join("");
+  
+  win.document.write(`
+    <html>
+      <head>
+        <title>${title}</title>
+        <style>
+          body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; background: #FFF9F0; color: #2C1810; margin: 0; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #6D1F2F; padding-bottom: 15px; margin-bottom: 30px; }
+          .logo { font-weight: 800; color: #6D1F2F; font-size: 26px; letter-spacing: -0.02em; }
+          .title { font-size: 18px; font-weight: 600; margin-top: 4px; color: #2C1810; }
+          .date { font-size: 12px; color: #6B7280; text-align: right; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #FFFFFF; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+          tr:nth-child(even) { background-color: #FFFDF9; }
+          @media print {
+            body { background: #FFFFFF; padding: 0; }
+            table { box-shadow: none; border: 1px solid #E5E7EB; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="logo">BakeFlow</div>
+            <div class="title">${title}</div>
+          </div>
+          <div class="date">
+            <div>Report Generated</div>
+            <div style="font-weight: 600; color: #2C1810; margin-top: 2px;">${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}</div>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr style="background: #FFF9F0;">${headersHTML}</tr>
+          </thead>
+          <tbody>
+            ${rowsHTML}
+          </tbody>
+        </table>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+              window.onafterprint = function() { window.close(); };
+            }, 300);
+          }
+        </script>
+      </body>
+    </html>
+  `);
+  win.document.close();
+};
+
 export function Reports() {
-  const handleExport = (type: string, format: string) => {
-    toast.success(`${type} exported as ${format} — downloading…`);
+  const { productionHistory, ingredients, products } = useDatabase();
+
+  const handleExport = (reportId: string, format: string) => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const currentMonthStr = todayStr.slice(0, 7);
+    
+    let title = "";
+    let headers: string[] = [];
+    let rows: string[][] = [];
+    
+    if (reportId === "daily") {
+      title = "Daily Production Report";
+      headers = ["Date", "Product", "Quantity", "Total Cost (₹)", "Cost/Item (₹)", "Worker"];
+      rows = productionHistory
+        .filter(p => p.date === todayStr)
+        .map(p => [
+          p.date,
+          p.productName,
+          `${p.qty} pcs`,
+          p.totalCost.toLocaleString("en-IN", { maximumFractionDigits: 2 }),
+          p.costPerItem.toFixed(2),
+          p.workerName || "System"
+        ]);
+    } else if (reportId === "monthly") {
+      title = "Monthly Production Report";
+      headers = ["Date", "Product", "Quantity", "Total Cost (₹)", "Cost/Item (₹)", "Worker"];
+      rows = productionHistory
+        .filter(p => p.date.startsWith(currentMonthStr))
+        .map(p => [
+          p.date,
+          p.productName,
+          `${p.qty} pcs`,
+          p.totalCost.toLocaleString("en-IN", { maximumFractionDigits: 2 }),
+          p.costPerItem.toFixed(2),
+          p.workerName || "System"
+        ]);
+    } else if (reportId === "ingredient") {
+      title = "Ingredient Inventory Status";
+      headers = ["Ingredient", "Current Stock", "Min Stock", "Cost/Unit (₹)", "Status"];
+      rows = ingredients.map(ing => [
+        ing.name,
+        `${ing.quantity} ${ing.unit}`,
+        `${ing.minStock} ${ing.unit}`,
+        ing.costPerUnit.toFixed(2),
+        ing.quantity <= ing.minStock ? "LOW STOCK" : "In Stock"
+      ]);
+    } else if (reportId === "cost") {
+      title = "Product Cost & Profit Margins";
+      headers = ["Product Name", "Est. Unit Cost (₹)", "Selling Price (₹)", "Profit Margin (%)"];
+      rows = products.map(p => [
+        p.name,
+        p.costPerUnit.toFixed(2),
+        p.sellingPrice.toFixed(2),
+        `${p.margin.toFixed(1)}%`
+      ]);
+    }
+
+    if (rows.length === 0 && (reportId === "daily" || reportId === "monthly")) {
+      toast.warning(`No production entries logged for ${reportId === "daily" ? "today" : "this month"} yet.`);
+      return;
+    }
+
+    if (format === "Excel") {
+      const filename = `${reportId}_report_${todayStr}.csv`;
+      downloadCSV(filename, headers, rows);
+      toast.success(`Exported ${title} as CSV`);
+    } else {
+      printHTMLReport(title, headers, rows);
+      toast.success(`Opening ${title} print view`);
+    }
   };
 
   return (
@@ -66,12 +217,12 @@ export function Reports() {
             <p className="mt-2 text-sm" style={{ color: "#2C1810", fontWeight: 600 }}>{r.title}</p>
             <p className="text-xs mt-1 mb-4" style={{ color: "#6B7280" }}>{r.desc}</p>
             <div className="flex gap-2">
-              <button onClick={() => handleExport(r.title, "PDF")}
+              <button onClick={() => handleExport(r.id, "PDF")}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs hover:opacity-80"
                 style={{ background: "#6D1F2F", color: "#FFFFFF", fontWeight: 500 }}>
                 <Download className="w-3 h-3" /> PDF
               </button>
-              <button onClick={() => handleExport(r.title, "Excel")}
+              <button onClick={() => handleExport(r.id, "Excel")}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs hover:opacity-80"
                 style={{ background: "#FEF3D0", color: "#6D1F2F", fontWeight: 500 }}>
                 <FileText className="w-3 h-3" /> Excel
