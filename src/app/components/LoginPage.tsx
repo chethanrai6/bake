@@ -33,17 +33,24 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [error, setError] = useState("");
 
   // Map database workers to login user list
+  const activeWorkers = workers.length > 0 ? workers : [
+    { id: "worker-uid-002", name: "Maria Santos", email: "maria@bakeflow.com", role: "worker", avatar: "MS", position: "Senior Baker", shift: "Morning", phone: "+1 555-0101", status: "Active" },
+    { id: "worker-uid-003", name: "James Wright", email: "james@bakeflow.com", role: "worker", avatar: "JW", position: "Baker", shift: "Afternoon", phone: "+1 555-0102", status: "Active" },
+    { id: "worker-uid-004", name: "Fatima Al-Nouri", email: "fatima@bakeflow.com", role: "worker", avatar: "FA", position: "Pastry Chef", shift: "Morning", phone: "+1 555-0103", status: "Active" },
+    { id: "worker-uid-006", name: "Lucia Fernandez", email: "lucia@bakeflow.com", role: "worker", avatar: "LF", position: "Decorator", shift: "Morning", phone: "+1 555-0105", status: "Active" }
+  ];
+
   const USERS = [
     { id: "admin_1", name: "Ahmed Omar", email: "admin@bakeflow.com", password: "admin123", role: "admin" as const, avatar: "AO", position: "Administrator", shift: "All" },
-    ...workers.map(w => ({
+    ...activeWorkers.map(w => ({
       id: w.id,
       name: w.name,
       email: w.email,
       password: "worker123", // default password
       role: "worker" as const,
-      avatar: w.name.split(" ").map(n => n[0]).join(""),
-      position: w.role,
-      shift: w.role.includes("Senior") || w.role.includes("Decorator") ? "Morning" : "Afternoon"
+      avatar: w.avatar || w.name.split(" ").map(n => n[0]).join(""),
+      position: w.position || w.role,
+      shift: w.shift || (w.role.includes("Senior") || w.role.includes("Decorator") ? "Morning" : "Afternoon")
     }))
   ];
 
