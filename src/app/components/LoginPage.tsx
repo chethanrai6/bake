@@ -33,7 +33,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   const [error, setError] = useState("");
 
   // Map database workers to login user list
-  const activeWorkers = workers.length > 0 ? workers : [
+  const dbWorkersOnly = workers.filter(w => w.role === "worker");
+  const activeWorkers = dbWorkersOnly.length > 0 ? dbWorkersOnly : [
     { id: "worker-uid-002", name: "Maria Santos", email: "maria@bakeflow.com", role: "worker", avatar: "MS", position: "Senior Baker", shift: "Morning", phone: "+1 555-0101", status: "Active" },
     { id: "worker-uid-003", name: "James Wright", email: "james@bakeflow.com", role: "worker", avatar: "JW", position: "Baker", shift: "Afternoon", phone: "+1 555-0102", status: "Active" },
     { id: "worker-uid-004", name: "Fatima Al-Nouri", email: "fatima@bakeflow.com", role: "worker", avatar: "FA", position: "Pastry Chef", shift: "Morning", phone: "+1 555-0103", status: "Active" },

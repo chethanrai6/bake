@@ -7,6 +7,9 @@ import {
 import { toast } from "sonner";
 import type { AuthUser } from "./LoginPage";
 import { useDatabase } from "../utils/db";
+import { USD_TO_INR } from "../utils/currency";
+
+const R = USD_TO_INR;
 
 /* ─────────────────────────────────────────────
    Greeting banner

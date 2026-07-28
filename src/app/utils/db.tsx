@@ -208,7 +208,7 @@ const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined
    ────────────────────────────────────────────── */
 
 const defaultWorkers: Worker[] = [
-  { id: "worker-uid-001", name: "Ahmed Omar", email: "admin@bakeflow.com", role: "admin", avatar: "AO", position: "Administrator", shift: undefined, phone: "+1 555-0100", status: "Active" },
+  { id: "worker-uid-001", name: "Ahmed Omar", email: "admin@bakeflow.com", role: "admin", avatar: "AO", position: "Administrator", shift: "All", phone: "+1 555-0100", status: "Active" },
   { id: "worker-uid-002", name: "Maria Santos", email: "maria@bakeflow.com", role: "worker", avatar: "MS", position: "Senior Baker", shift: "Morning", phone: "+1 555-0101", status: "Active" },
   { id: "worker-uid-003", name: "James Wright", email: "james@bakeflow.com", role: "worker", avatar: "JW", position: "Baker", shift: "Afternoon", phone: "+1 555-0102", status: "Active" },
   { id: "worker-uid-004", name: "Fatima Al-Nouri", email: "fatima@bakeflow.com", role: "worker", avatar: "FA", position: "Pastry Chef", shift: "Morning", phone: "+1 555-0103", status: "Active" },
