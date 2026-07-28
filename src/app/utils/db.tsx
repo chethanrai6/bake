@@ -124,18 +124,7 @@ const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined
    Initial/Seed Mock Data
    ────────────────────────────────────────────── */
 
-const defaultIngredients: Ingredient[] = [
-  { id: "ing_1", name: "All-Purpose Flour", quantity: 85, unit: "kg", costPerUnit: 0.8 * USD_TO_INR, minStock: 20 },
-  { id: "ing_2", name: "Granulated Sugar", quantity: 42, unit: "kg", costPerUnit: 1.2 * USD_TO_INR, minStock: 15 },
-  { id: "ing_3", name: "Unsalted Butter", quantity: 18, unit: "kg", costPerUnit: 6.5 * USD_TO_INR, minStock: 10 },
-  { id: "ing_4", name: "Large Eggs", quantity: 240, unit: "pcs", costPerUnit: 0.25 * USD_TO_INR, minStock: 60 },
-  { id: "ing_5", name: "Whole Milk", quantity: 30, unit: "L", costPerUnit: 1.1 * USD_TO_INR, minStock: 10 },
-  { id: "ing_6", name: "Active Dry Yeast", quantity: 4, unit: "kg", costPerUnit: 12.0 * USD_TO_INR, minStock: 2 },
-  { id: "ing_7", name: "Baking Powder", quantity: 3, unit: "kg", costPerUnit: 4.5 * USD_TO_INR, minStock: 1 },
-  { id: "ing_8", name: "Vanilla Extract", quantity: 2, unit: "L", costPerUnit: 18.0 * USD_TO_INR, minStock: 0.5 },
-  { id: "ing_9", name: "Cocoa Powder", quantity: 8, unit: "kg", costPerUnit: 7.0 * USD_TO_INR, minStock: 3 },
-  { id: "ing_10", name: "Salt", quantity: 12, unit: "kg", costPerUnit: 0.5 * USD_TO_INR, minStock: 4 },
-];
+const defaultIngredients: Ingredient[] = [];
 
 const defaultWorkers: Worker[] = [
   { id: "w_1", name: "Maria Santos", email: "maria@bakeflow.com", role: "Senior Baker", lastActivity: "2026-06-04 08:30", status: "Active", phone: "+1 555-0101" },
@@ -146,42 +135,11 @@ const defaultWorkers: Worker[] = [
   { id: "w_6", name: "Tom Anderson", email: "tom@bakeflow.com", role: "Apprentice", lastActivity: "2026-06-02 16:00", status: "Inactive", phone: "+1 555-0106" },
 ];
 
-const defaultSuppliers: Supplier[] = [
-  { id: "sup_1", name: "Golden Grain Mills", contact: "John Miller", phone: "+1 555-0301", email: "sales@goldengrains.com", ingredients: "All-Purpose Flour, Whole Wheat Flour, Active Dry Yeast" },
-  { id: "sup_2", name: "Sweet Valley Sugar Co.", contact: "Sarah Sweet", phone: "+1 555-0302", email: "orders@sweetvalley.com", ingredients: "Granulated Sugar, Powdered Sugar, Brown Sugar" },
-  { id: "sup_3", name: "Green Pastures Dairy", contact: "Robert Dairy", phone: "+1 555-0303", email: "delivery@greenpastures.com", ingredients: "Unsalted Butter, Whole Milk, Heavy Cream, Large Eggs" },
-  { id: "sup_4", name: "Tropical Spice Imports", contact: "Elena Spice", phone: "+1 555-0304", email: "elena@tropicalspice.com", ingredients: "Vanilla Extract, Cinnamon Powder, Nutmeg" },
-  { id: "sup_5", name: "Pacific Cocoa Co.", contact: "Mark Choc", phone: "+1 555-0305", email: "mark@pacificcocoa.com", ingredients: "Cocoa Powder, Chocolate Chips, Dark Chocolate blocks" },
-];
-
-const defaultProductionHistory: ProductionEntry[] = [
-  { id: "prod_1", product: "Croissant", quantity: 48, totalCost: 15 * 48 * USD_TO_INR / 10, costPerItem: 1.5 * USD_TO_INR, date: "2026-06-04", addedBy: "Maria Santos" },
-  { id: "prod_2", product: "Sourdough Loaf", quantity: 60, totalCost: 20 * 60 * USD_TO_INR / 10, costPerItem: 2.0 * USD_TO_INR, date: "2026-06-04", addedBy: "James Wright" },
-  { id: "prod_3", product: "Blueberry Muffin", quantity: 120, totalCost: 8 * 120 * USD_TO_INR / 10, costPerItem: 0.8 * USD_TO_INR, date: "2026-06-03", addedBy: "Fatima Al-Nouri" },
-  { id: "prod_4", product: "Chocolate Brownie", quantity: 80, totalCost: 10 * 80 * USD_TO_INR / 10, costPerItem: 1.0 * USD_TO_INR, date: "2026-06-02", addedBy: "Lucia Fernandez" },
-];
-
-const defaultWasteLogs: WasteEntry[] = [
-  { id: "wst_1", ingredient: "Whole Milk", quantity: 4, unit: "L", reason: "Expired / Sour", purchaseCost: 4.4 * USD_TO_INR, date: "2026-06-03", addedBy: "James Wright" },
-  { id: "wst_2", ingredient: "Large Eggs", quantity: 18, unit: "pcs", reason: "Broken during shift", purchaseCost: 4.5 * USD_TO_INR, date: "2026-06-02", addedBy: "Maria Santos" },
-  { id: "wst_3", ingredient: "Unsalted Butter", quantity: 1.5, unit: "kg", reason: "Left out overnight / melted", purchaseCost: 9.75 * USD_TO_INR, date: "2026-05-28", addedBy: "Fatima Al-Nouri" },
-];
-
-const defaultRefills: RefillEntry[] = [
-  { id: "ref_1", ingredient: "All-Purpose Flour", quantityAdded: 50, unit: "kg", purchaseCost: 40 * USD_TO_INR, supplier: "Golden Grain Mills", date: "2026-06-03", addedBy: "Ahmed Omar" },
-  { id: "ref_2", ingredient: "Granulated Sugar", quantityAdded: 30, unit: "kg", purchaseCost: 36 * USD_TO_INR, supplier: "Sweet Valley Sugar Co.", date: "2026-06-03", addedBy: "Ahmed Omar" },
-  { id: "ref_3", ingredient: "Unsalted Butter", quantityAdded: 20, unit: "kg", purchaseCost: 130 * USD_TO_INR, supplier: "Green Pastures Dairy", date: "2026-06-02", addedBy: "Maria Santos" },
-  { id: "ref_4", ingredient: "Large Eggs", quantityAdded: 300, unit: "pcs", purchaseCost: 75 * USD_TO_INR, supplier: "Green Pastures Dairy", date: "2026-06-02", addedBy: "Ahmed Omar" },
-  { id: "ref_5", ingredient: "Whole Milk", quantityAdded: 40, unit: "L", purchaseCost: 44 * USD_TO_INR, supplier: "Green Pastures Dairy", date: "2026-06-01", addedBy: "James Wright" },
-];
-
-const defaultActivities: Activity[] = [
-  { id: "act_1", type: "production", text: "Baked 48 Croissants", time: "2 hrs ago", timestamp: Date.now() - 2 * 60 * 60 * 1000, icon: "🥐" },
-  { id: "act_2", type: "stock", text: "Restocked 50kg Flour", time: "4 hrs ago", timestamp: Date.now() - 4 * 60 * 60 * 1000, icon: "📦" },
-  { id: "act_3", type: "production", text: "Baked 60 Sourdough Loaves", time: "6 hrs ago", timestamp: Date.now() - 6 * 60 * 60 * 1000, icon: "🍞" },
-  { id: "act_4", type: "worker", text: "Fatima clocked in", time: "8 hrs ago", timestamp: Date.now() - 8 * 60 * 60 * 1000, icon: "👩‍🍳" },
-  { id: "act_5", type: "stock", text: "Restocked 20L Milk", time: "Yesterday", timestamp: Date.now() - 24 * 60 * 60 * 1000, icon: "🥛" },
-];
+const defaultSuppliers: Supplier[] = [];
+const defaultProductionHistory: ProductionEntry[] = [];
+const defaultWasteLogs: WasteEntry[] = [];
+const defaultRefills: RefillEntry[] = [];
+const defaultActivities: Activity[] = [];
 
 /* ──────────────────────────────────────────────
    Database Provider Component
@@ -314,13 +272,13 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return defaults;
       };
 
-      setIngredients(getOrInit("bf_ingredients", defaultIngredients));
-      setWorkers(getOrInit("bf_workers", defaultWorkers));
-      setSuppliers(getOrInit("bf_suppliers", defaultSuppliers));
-      setProductionHistory(getOrInit("bf_production", defaultProductionHistory));
-      setWasteLogs(getOrInit("bf_waste", defaultWasteLogs));
-      setRefillHistory(getOrInit("bf_refills", defaultRefills));
-      setActivities(getOrInit("bf_activities", defaultActivities));
+      setIngredients(getOrInit("bfc_ingredients", defaultIngredients));
+      setWorkers(getOrInit("bfc_workers", defaultWorkers));
+      setSuppliers(getOrInit("bfc_suppliers", defaultSuppliers));
+      setProductionHistory(getOrInit("bfc_production", defaultProductionHistory));
+      setWasteLogs(getOrInit("bfc_waste", defaultWasteLogs));
+      setRefillHistory(getOrInit("bfc_refills", defaultRefills));
+      setActivities(getOrInit("bfc_activities", defaultActivities));
 
       setLoading(false);
     }
@@ -344,7 +302,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const newItem: Ingredient = { ...data, id: "ing_" + Date.now() };
       setIngredients((prev) => {
         const updated = [...prev, newItem];
-        saveToLocal("bf_ingredients", updated);
+        saveToLocal("bfc_ingredients", updated);
         return updated;
       });
     }
@@ -356,7 +314,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       setIngredients((prev) => {
         const updated = prev.map((item) => (item.id === id ? { ...data, id } : item));
-        saveToLocal("bf_ingredients", updated);
+        saveToLocal("bfc_ingredients", updated);
         return updated;
       });
     }
@@ -368,7 +326,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       setIngredients((prev) => {
         const updated = prev.filter((item) => item.id !== id);
-        saveToLocal("bf_ingredients", updated);
+        saveToLocal("bfc_ingredients", updated);
         return updated;
       });
     }
@@ -382,7 +340,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const newItem: Worker = { ...data, id: "w_" + Date.now() };
       setWorkers((prev) => {
         const updated = [...prev, newItem];
-        saveToLocal("bf_workers", updated);
+        saveToLocal("bfc_workers", updated);
         return updated;
       });
     }
@@ -394,7 +352,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       setWorkers((prev) => {
         const updated = prev.map((item) => (item.id === id ? { ...data, id } : item));
-        saveToLocal("bf_workers", updated);
+        saveToLocal("bfc_workers", updated);
         return updated;
       });
     }
@@ -406,7 +364,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       setWorkers((prev) => {
         const updated = prev.filter((item) => item.id !== id);
-        saveToLocal("bf_workers", updated);
+        saveToLocal("bfc_workers", updated);
         return updated;
       });
     }
@@ -420,7 +378,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const newItem: Supplier = { ...data, id: "sup_" + Date.now() };
       setSuppliers((prev) => {
         const updated = [...prev, newItem];
-        saveToLocal("bf_suppliers", updated);
+        saveToLocal("bfc_suppliers", updated);
         return updated;
       });
     }
@@ -432,7 +390,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       setSuppliers((prev) => {
         const updated = prev.map((item) => (item.id === id ? { ...data, id } : item));
-        saveToLocal("bf_suppliers", updated);
+        saveToLocal("bfc_suppliers", updated);
         return updated;
       });
     }
@@ -444,7 +402,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       setSuppliers((prev) => {
         const updated = prev.filter((item) => item.id !== id);
-        saveToLocal("bf_suppliers", updated);
+        saveToLocal("bfc_suppliers", updated);
         return updated;
       });
     }
@@ -463,7 +421,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       setProductionHistory((prev) => {
         const updated = [{ ...data, id: prodId }, ...prev];
-        saveToLocal("bf_production", updated);
+        saveToLocal("bfc_production", updated);
         return updated;
       });
     }
@@ -492,7 +450,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       setWasteLogs((prev) => {
         const updated = [{ ...data, id: wasteId }, ...prev];
-        saveToLocal("bf_waste", updated);
+        saveToLocal("bfc_waste", updated);
         return updated;
       });
     }
@@ -519,7 +477,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       setRefillHistory((prev) => {
         const updated = [{ ...data, id: refillId }, ...prev];
-        saveToLocal("bf_refills", updated);
+        saveToLocal("bfc_refills", updated);
         return updated;
       });
     }
@@ -552,7 +510,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const newItem: Activity = { ...data, id: "act_" + Date.now() };
       setActivities((prev) => {
         const updated = [newItem, ...prev.slice(0, 19)]; // Keep last 20 logs
-        saveToLocal("bf_activities", updated);
+        saveToLocal("bfc_activities", updated);
         return updated;
       });
     }
