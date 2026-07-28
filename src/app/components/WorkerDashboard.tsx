@@ -43,10 +43,6 @@ function GreetingBanner({ worker }: { worker: { name: string; role: string; shif
             <span className="text-xs px-2.5 py-1 rounded-full" style={{ background: "rgba(244,201,93,0.2)", color: "#F4C95D", fontWeight: 600 }}>
               {worker.role}
             </span>
-            <span className="text-xs flex items-center gap-1" style={{ color: "rgba(255,255,255,0.65)" }}>
-              <ShiftIcon className="w-3 h-3" />
-              {worker.shift} Shift
-            </span>
           </div>
         </div>
       </div>
@@ -566,9 +562,8 @@ function PerformanceWidget({ workerName }: { workerName: string }) {
     .reduce((sum, p) => sum + (p.qty || 0), 0);
 
   const metrics = [
-    { label: "Items Today", value: todayItems || 48, goal: 100, color: "#6D1F2F" },
+    { label: "Items Today", value: todayItems || 0, goal: 100, color: "#6D1F2F" },
     { label: "Waste Rate", value: 2, goal: 5, color: "#34C759", invert: true },
-    { label: "Tasks Done", value: 2, goal: 4, color: "#F4C95D" },
   ];
 
   return (
@@ -696,18 +691,16 @@ export function WorkerDashboard({ user }: { user?: AuthUser }) {
       <GreetingBanner worker={worker} />
 
       {/* Stat row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Items Baked" value={todayItemsBaked || 48} sub="Today's total" icon={ChefHat} iconBg="#FEF3D0" iconColor="#6D1F2F" />
-        <StatCard label="Batches Done" value={`${todayBatches.length || 2}/4`} sub="Tasks complete" icon={CheckCircle} iconBg="rgba(52,199,89,0.1)" iconColor="#34C759" />
-        <StatCard label="Shift Time" value="5h 30m" sub="08:00 → 16:00" icon={Clock} iconBg="rgba(109,31,47,0.08)" iconColor="#6D1F2F" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <StatCard label="Items Baked" value={todayItemsBaked || 0} sub="Today's total" icon={ChefHat} iconBg="#FEF3D0" iconColor="#6D1F2F" />
         <StatCard label="Low Stock" value={lowStock.length} sub="Needs attention" icon={AlertTriangle} iconBg="rgba(229,72,77,0.08)" iconColor="#E5484D" accent />
+        <StatCard label="System Status" value="Online" sub="Database Connected" icon={CheckCircle} iconBg="rgba(52,199,89,0.1)" iconColor="#34C759" />
       </div>
 
       {/* Main 3-column grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Left col */}
         <div className="xl:col-span-2 space-y-5">
-          <TaskChecklist />
           <QuickLogger workerName={worker.name} />
         </div>
 
